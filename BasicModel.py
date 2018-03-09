@@ -79,7 +79,7 @@ class KerasModel( object ):
 		if self.e2e_flag:
 			self.model_arch = 'e2e-' + self.model_arch
 
-	def test(self, H, X, data_type, tagDict, pad_data):
+	def test(self, H, X, data_type, tagDict,intentDict, pad_data):
 		# open a dir to store results
 		if self.default:
 			target_file = self.model_arch + '_H-'+str(self.hidden_size)+'_O-'+self.update_f+'_A-'+self.activation+'_WR-'+self.input_type
@@ -111,40 +111,46 @@ class KerasModel( object ):
 			sys.stderr.write("Output the attention weights in the file %s.\n" %self.output_att)
 			exit()
 		if "predict_classes" in dir(self.model):
-			prediction,intent = self.model.predict_classes(batch_data)
+			prediction = self.model.predict_classes(batch_data)
 			probability = self.model.predict_proba(batch_data)
 		else:
-			probability = self.model.predict(batch_data)
+			probability,intent2prob = self.model.predict(batch_data)
 			prediction = np.argmax(probability, axis=2)
+			res = np.argmax(intent2prob, axis=2)
 
 		# print()
 		# output prediction and probability results
-		# fo = open(target_file+"."+ data_type, "wb")
-		# for i, sent in enumerate(prediction):
-		# 	for j, tid in enumerate(sent):
-		# 		if pad_data[i][j] != 0:
-		# 			if self.tag_format == 'normal':
-		# 				fo.write(tagDict[tid] + ' ')
-		# 			elif self.tag_format == 'conlleval':
-		# 				fo.write(tagDict[tid] + '\n')
-		# 	fo.write('\n')
-		# fo.close()
+		fo = open(target_file+"."+ data_type, "wb")
+		for i, sent in enumerate(prediction):
+			for j, tid in enumerate(sent):
+				if pad_data[i][j] != 0:
+					if self.tag_format == 'normal':
+						fo.write(tagDict[tid] + ' ')
+					elif self.tag_format == 'conlleval':
+						fo.write(tagDict[tid] + '\n')
+			fo.write('\n')
+		fo.close()
+		fo = open(target_file+"."+ data_type+'.intent', "wb")
+		for i, sent in enumerate(res):
+			for j, tid in enumerate(sent):
+				if pad_data[i][j] != 0:
+					if self.tag_format == 'normal':
+						fo.write(intentDict[tid] + ' ')
+					elif self.tag_format == 'conlleval':
+						fo.write(intentDict[tid] + '\n')
+			fo.write('\n')
+		fo.close()
 		# fo = open(target_file+"."+ data_type+'.intent', "wb")
 		# for i, sent in enumerate(prediction):
-		# 	for j, tid in enumerate(sent):
-		# 		if pad_data[i][j] != 0:
-		# 			if self.tag_format == 'normal':
-		# 				fo.write(tagDict[tid] + ' ')
-		# 			elif self.tag_format == 'conlleval':
-		# 				fo.write(tagDict[tid] + '\n')
-		# 	fo.write('\n')
+		# 	fo.write(sent + '\n')
+		# 	# fo.write('\n'
 		# fo.close()
-		fo = open(target_file+"."+ data_type+'.intent', "wb")
-		for i, sent in enumerate(prediction):
-			fo.write(sent + '\n')
-			# fo.write('\n'
-		fo.close()
-		# fo = open(target_file+"."+ data_type+'.prob', "wb")
+		# fo = open(target_file+"."+ data_type+'.intent222', "wb")
+		# for i, sent in enumerate(res):
+		# 	fo.write(sent + '\n')
+		# 	# fo.write('\n'
+		# fo.close()
+		# # fo = open(target_file+"."+ data_type+'.prob', "wb")
 		# for i, sent in enumerate(probability):
 		# 	for j, prob in enumerate(sent):
 		# 		if pad_data[i][j] != 0:
@@ -737,8 +743,8 @@ class KerasModel( object ):
 				num_iter = i * self.record_epoch
 				self.train(H_train=H_train, X_train=X_train, y_train=y_train,y1_train=y1_train, H_dev=H_dev, X_dev=X_dev, y_dev=y_dev)
 				if not self.nodev:
-					self.test(H=H_dev, X=X_dev, data_type='dev.'+str(num_iter),tagDict=trainData.dataSet['id2tag'], pad_data=pad_X_dev)
-				self.test(H=H_test, X=X_test, data_type='test.'+str(num_iter), tagDict=trainData.dataSet['id2tag'], pad_data=pad_X_test)
+					self.test(H=H_dev, X=X_dev, data_type='dev.'+str(num_iter),tagDict=trainData.dataSet['id2tag'],intentDict=trainData.dataSet['id2intent'], pad_data=pad_X_dev)
+				self.test(H=H_test, X=X_test, data_type='test.'+str(num_iter), tagDict=trainData.dataSet['id2tag'],intentDict=trainData.dataSet['id2intent'], pad_data=pad_X_test)
 				# save weights for the current model
 				whole_path = self.model_arch + '.' + str(num_iter) + '.h5'
 				# whole_path = self.mdl_path + '/' + self.model_arch + '.' + str(num_iter) + '.h5'
